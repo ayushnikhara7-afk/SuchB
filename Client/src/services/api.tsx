@@ -2,6 +2,10 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+// Debug logging for API URL
+console.log('API Base URL:', API_BASE_URL);
+console.log('Environment:', import.meta.env.MODE);
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
@@ -28,11 +32,24 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      data: error.response?.data
+    });
+
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+    
+    if (error.response?.status === 404) {
+      console.error('Route not found:', error.config?.url);
+    }
+    
     return Promise.reject(error);
   }
 );

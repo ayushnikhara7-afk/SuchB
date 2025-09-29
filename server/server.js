@@ -94,12 +94,50 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/test-videos', testVideoRoutes); // Test routes without authentication
 app.use('/api/test-blogs', testBlogRoutes); // Test blog routes without authentication
 
+// Root endpoint for testing
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'SuchBliss API Server is running',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      videos: '/api/videos',
+      blogs: '/api/blogs',
+      payments: '/api/payments',
+      admin: '/api/admin',
+      testVideos: '/api/test-videos',
+      testBlogs: '/api/test-blogs'
+    }
+  });
+});
+
+// Simple test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'API is working correctly',
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    url: req.url,
+    headers: {
+      'user-agent': req.get('User-Agent'),
+      'origin': req.get('Origin'),
+      'referer': req.get('Referer')
+    }
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
     message: 'Server is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -123,30 +161,46 @@ app.use('*', (req, res) => {
 // Start server
 async function startServer() {
   try {
+    // Validate required environment variables
+    const requiredEnvVars = ['JWT_SECRET', 'MONGODB_URI'];
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    
+    if (missingVars.length > 0) {
+      console.error('❌ Missing required environment variables:', missingVars.join(', '));
+      console.error('Please set these environment variables in your deployment platform');
+      process.exit(1);
+    }
+
+    console.log('🔗 Connecting to database...');
     // Connect to database
     await database.connect();
     
+    console.log('👤 Creating admin user if needed...');
     // Create admin user if it doesn't exist
     await createAdminUserIfNotExists();
     
+    console.log('🚀 Starting server...');
     // Start server
     const server = app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`✅ Server running on port ${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+      console.log(`🔗 Database: Connected`);
+      console.log(`📡 API Routes available at: http://localhost:${PORT}/api/`);
     });
 
     // Handle server errors
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use`);
+        console.error(`❌ Port ${PORT} is already in use`);
       } else {
-        console.error('Server error:', error);
+        console.error('❌ Server error:', error);
       }
       process.exit(1);
     });
 
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error);
+    console.error('Error details:', error.message);
     process.exit(1);
   }
 }
