@@ -1,4 +1,4 @@
-require('dotenv').config();
+//require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -14,6 +14,10 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 const bcrypt = require('bcryptjs');
 
 const app = express();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 
 // Function to create admin user if it doesn't exist
 async function createAdminUserIfNotExists() {
